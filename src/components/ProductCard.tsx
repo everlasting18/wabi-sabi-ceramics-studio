@@ -1,8 +1,10 @@
 import { Heart, Eye } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 interface ProductCardProps {
+  id?: number;
   image: string;
   name: string;
   brand: string;
@@ -13,6 +15,7 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({
+  id = 1,
   image,
   name,
   brand,
@@ -59,42 +62,46 @@ const ProductCard = ({
         
         {/* Quick View - Shows on hover */}
         <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="w-full"
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            Xem nhanh
-          </Button>
+          <Link to={`/product/${id}`}>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full"
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              Xem nhanh
+            </Button>
+          </Link>
         </div>
       </div>
       
       {/* Content */}
-      <div className="p-5">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
-          {brand}
-        </p>
-        
-        <h3 className="font-medium text-base mb-2 line-clamp-2 group-hover:text-primary transition-colors">
-          {name}
-        </h3>
+      <Link to={`/product/${id}`}>
+        <div className="p-5">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+            {brand}
+          </p>
+          
+          <h3 className="font-medium text-base mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+            {name}
+          </h3>
         
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xs text-muted-foreground">{condition}</span>
         </div>
         
-        <div className="flex items-center gap-2">
-          <span className="text-lg font-bold text-primary">
-            {price}
-          </span>
-          {originalPrice && (
-            <span className="text-sm text-muted-foreground line-through">
-              {originalPrice}
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-bold text-primary">
+              {price}
             </span>
-          )}
+            {originalPrice && (
+              <span className="text-sm text-muted-foreground line-through">
+                {originalPrice}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
+      </Link>
     </div>
   );
 };
