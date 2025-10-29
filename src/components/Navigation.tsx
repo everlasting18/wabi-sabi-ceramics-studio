@@ -1,10 +1,22 @@
 import { useState, useEffect } from "react";
-import { ShoppingCart, Heart, User, Search, Menu, X } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ShoppingCart, Heart, User, Search, Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/useAuth";
 
 const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -13,6 +25,11 @@ const Navigation = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   const menuItems = [
     { label: "Sản phẩm", href: "#products" },
@@ -33,11 +50,11 @@ const Navigation = () => {
         <div className="container mx-auto px-6 lg:px-20">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
-            <a href="/" className="flex items-center space-x-2">
+            <Link to="/" className="flex items-center space-x-2">
               <div className="text-2xl font-serif font-semibold text-primary">
                 Gốm Nhật
               </div>
-            </a>
+            </Link>
 
             {/* Desktop Menu */}
             <div className="hidden lg:flex items-center space-x-8">
@@ -57,20 +74,54 @@ const Navigation = () => {
               <Button variant="ghost" size="icon" className="hover:text-primary">
                 <Search className="h-5 w-5" />
               </Button>
-              <Button variant="ghost" size="icon" className="hover:text-primary">
-                <User className="h-5 w-5" />
-              </Button>
+              
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="hover:text-primary">
+                      <User className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuLabel>
+                      {user.user_metadata?.full_name || user.email}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/account">Tài khoản</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/orders">Đơn hàng</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Đăng xuất
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button variant="ghost" size="icon" asChild>
+                  <Link to="/auth">
+                    <User className="h-5 w-5" />
+                  </Link>
+                </Button>
+              )}
+
               <Button variant="ghost" size="icon" className="hover:text-primary relative">
                 <Heart className="h-5 w-5" />
                 <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
                   0
                 </span>
               </Button>
-              <Button variant="ghost" size="icon" className="hover:text-primary relative">
-                <ShoppingCart className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  0
-                </span>
+              
+              <Button variant="ghost" size="icon" className="hover:text-primary relative" asChild>
+                <Link to="/cart">
+                  <ShoppingCart className="h-5 w-5" />
+                  <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    2
+                  </span>
+                </Link>
               </Button>
             </div>
 
@@ -122,12 +173,49 @@ const Navigation = () => {
               ))}
             </div>
 
+            {/* Mobile User Menu */}
+            {user ? (
+              <div className="border-t border-border pt-6 mb-6">
+                <p className="text-sm font-medium mb-4">
+                  {user.user_metadata?.full_name || user.email}
+                </p>
+                <div className="flex flex-col space-y-2">
+                  <Link
+                    to="/account"
+                    className="text-sm text-muted-foreground hover:text-primary"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Tài khoản
+                  </Link>
+                  <Link
+                    to="/orders"
+                    className="text-sm text-muted-foreground hover:text-primary"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Đơn hàng
+                  </Link>
+                  <button
+                    onClick={() => {
+                      handleSignOut();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="text-sm text-destructive hover:text-destructive/80 text-left"
+                  >
+                    Đăng xuất
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="border-t border-border pt-6 mb-6">
+                <Button asChild className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Link to="/auth">Đăng nhập</Link>
+                </Button>
+              </div>
+            )}
+
             <div className="flex items-center space-x-4 pt-6 border-t border-border">
               <Button variant="ghost" size="icon">
                 <Search className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon">
-                <User className="h-5 w-5" />
               </Button>
               <Button variant="ghost" size="icon" className="relative">
                 <Heart className="h-5 w-5" />
@@ -135,11 +223,13 @@ const Navigation = () => {
                   0
                 </span>
               </Button>
-              <Button variant="ghost" size="icon" className="relative">
-                <ShoppingCart className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  0
-                </span>
+              <Button variant="ghost" size="icon" className="relative" asChild>
+                <Link to="/cart">
+                  <ShoppingCart className="h-5 w-5" />
+                  <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    2
+                  </span>
+                </Link>
               </Button>
             </div>
           </div>
