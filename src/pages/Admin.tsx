@@ -1,30 +1,124 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import AddProductForm from "@/components/AddProductForm";
+import EditProductDialog from "@/components/EditProductDialog";
+import DeleteProductDialog from "@/components/DeleteProductDialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAllProducts } from "@/services/productService";
-import { Loader2, Package, Plus, ListTree } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { getAllProducts, getAllCategories, type Product } from "@/services/productService";
+import {
+  Loader2,
+  Package,
+  Plus,
+  Search,
+  Filter,
+  Edit,
+  Trash2,
+  Eye,
+  BarChart3,
+  TrendingUp,
+  ShoppingBag,
+  AlertCircle,
+} from "lucide-react";
 
 const Admin = () => {
   const { user, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState("add");
+  const [activeTab, setActiveTab] = useState("overview");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [badgeFilter, setBadgeFilter] = useState("all");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Fetch products
+  // Fetch data
   const { data: products, isLoading: productsLoading } = useQuery({
     queryKey: ["products"],
     queryFn: getAllProducts,
     enabled: !!user,
   });
 
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: getAllCategories,
+    enabled: !!user,
+  });
+
+  // Filter products
+  const filteredProducts = useMemo(() => {
+    if (!products) return [];
+
+    return products.filter((product) => {
+      // Search filter
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.brand.toLowerCase().includes(searchQuery.toLowerCase());
+
+      // Category filter
+      const matchesCategory =
+        categoryFilter === "all" || product.category === categoryFilter;
+
+      // Badge filter
+      const matchesBadge =
+        badgeFilter === "all" ||
+        (badgeFilter === "none" && !product.badge) ||
+        product.badge === badgeFilter;
+
+      return matchesSearch && matchesCategory && matchesBadge;
+    });
+  }, [products, searchQuery, categoryFilter, badgeFilter]);
+
+  // Stats
+  const stats = useMemo(() => {
+    if (!products) return { total: 0, active: 0, lowStock: 0, totalValue: 0 };
+
+    return {
+      total: products.length,
+      active: products.filter((p) => p.is_active).length,
+      lowStock: products.filter((p) => p.stock < 5).length,
+      totalValue: products.reduce((sum, p) => sum + p.price * p.stock, 0),
+    };
+  }, [products]);
+
+  // Handle actions
+  const handleEdit = (product: Product) => {
+    setSelectedProduct(product);
+    setEditDialogOpen(true);
+  };
+
+  const handleDelete = (product: Product) => {
+    setSelectedProduct(product);
+    setDeleteDialogOpen(true);
+  };
+
   // Redirect if not authenticated
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Đang tải...</p>
+        </div>
       </div>
     );
   }
@@ -34,17 +128,20 @@ const Admin = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-6 py-8">
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 shadow-sm">
+        <div className="container mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-serif font-bold text-foreground mb-2">
-                Quản lý Sản phẩm
+            <div className="space-y-1">
+              <h1 className="text-3xl font-serif font-bold text-foreground flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Package className="h-6 w-6 text-primary" />
+                </div>
+                Quản Lý Sản Phẩm
               </h1>
               <p className="text-muted-foreground">
-                Thêm và quản lý sản phẩm gốm sứ Nhật Bản
+                Quản lý kho hàng gốm sứ Nhật Bản
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -52,116 +149,373 @@ const Admin = () => {
                 <p className="text-sm text-muted-foreground">Đăng nhập với</p>
                 <p className="font-medium">{user.email}</p>
               </div>
+              <Button
+                size="lg"
+                onClick={() => setActiveTab("add")}
+                className="shadow-lg"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Thêm sản phẩm
+              </Button>
             </div>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-6 py-12">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-12">
-            <TabsTrigger value="add" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Thêm sản phẩm
+      <div className="container mx-auto px-6 py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-3 h-12">
+            <TabsTrigger value="overview" className="text-base">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Tổng quan
             </TabsTrigger>
-            <TabsTrigger value="list" className="flex items-center gap-2">
-              <ListTree className="h-4 w-4" />
+            <TabsTrigger value="list" className="text-base">
+              <Package className="h-4 w-4 mr-2" />
               Danh sách
+            </TabsTrigger>
+            <TabsTrigger value="add" className="text-base">
+              <Plus className="h-4 w-4 mr-2" />
+              Thêm mới
             </TabsTrigger>
           </TabsList>
 
-          {/* Add Product Tab */}
-          <TabsContent value="add" className="mt-0">
-            <AddProductForm onSuccess={() => setActiveTab("list")} />
-          </TabsContent>
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6 mt-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Tổng sản phẩm
+                  </CardTitle>
+                  <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{stats.total}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats.active} đang hoạt động
+                  </p>
+                </CardContent>
+              </Card>
 
-          {/* Product List Tab */}
-          <TabsContent value="list" className="mt-0">
-            <Card>
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Giá trị kho
+                  </CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">
+                    {new Intl.NumberFormat("vi-VN", {
+                      notation: "compact",
+                      compactDisplay: "short",
+                    }).format(stats.totalValue)}₫
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Tổng giá trị hàng tồn
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Sắp hết hàng
+                  </CardTitle>
+                  <AlertCircle className="h-4 w-4 text-orange-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-orange-500">{stats.lowStock}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Sản phẩm còn dưới 5 chiếc
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Danh mục
+                  </CardTitle>
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{categories?.length || 0}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Phân loại sản phẩm
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent Products */}
+            <Card className="shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Package className="h-5 w-5" />
-                  Danh sách sản phẩm
+                  Sản phẩm mới nhất
                 </CardTitle>
                 <CardDescription>
-                  {products?.length || 0} sản phẩm trong cơ sở dữ liệu
+                  10 sản phẩm được thêm gần đây
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {productsLoading ? (
-                  <div className="flex items-center justify-center py-12">
+                  <div className="flex justify-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 ) : products && products.length > 0 ? (
-                  <div className="space-y-4">
-                    {products.map((product) => (
+                  <div className="space-y-3">
+                    {products.slice(0, 10).map((product) => (
                       <div
                         key={product.id}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                        className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors"
                       >
-                        <div className="flex items-center gap-4">
-                          {product.image_url && (
-                            <img
-                              src={product.image_url}
-                              alt={product.name}
-                              className="h-16 w-16 object-cover rounded"
-                            />
-                          )}
-                          <div>
-                            <h3 className="font-semibold text-foreground">
-                              {product.name}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {product.brand} • {product.condition}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="font-semibold text-primary">
-                                {new Intl.NumberFormat("vi-VN").format(product.price)}₫
-                              </span>
-                              {product.original_price && (
-                                <span className="text-sm text-muted-foreground line-through">
-                                  {new Intl.NumberFormat("vi-VN").format(product.original_price)}₫
-                                </span>
-                              )}
-                              {product.badge && (
-                                <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
-                                  {product.badge === "new" && "Mới"}
-                                  {product.badge === "sale" && "Giảm giá"}
-                                  {product.badge === "rare" && "Hiếm"}
-                                </span>
-                              )}
-                            </div>
-                          </div>
+                        {product.image_url && (
+                          <img
+                            src={product.image_url}
+                            alt={product.name}
+                            className="h-12 w-12 object-cover rounded"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-sm truncate">{product.name}</h4>
+                          <p className="text-xs text-muted-foreground">{product.brand}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm text-muted-foreground">
-                            Tồn kho: {product.stock}
+                          <p className="font-semibold text-sm">
+                            {new Intl.NumberFormat("vi-VN").format(product.price)}₫
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {new Date(product.created_at).toLocaleDateString("vi-VN")}
+                          <p className="text-xs text-muted-foreground">
+                            Tồn: {product.stock}
                           </p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEdit(product)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDelete(product)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground mb-4">
-                      Chưa có sản phẩm nào trong cơ sở dữ liệu
-                    </p>
-                    <Button onClick={() => setActiveTab("add")}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Thêm sản phẩm đầu tiên
-                    </Button>
+                  <div className="text-center py-8 text-muted-foreground">
+                    Chưa có sản phẩm nào
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Product List Tab */}
+          <TabsContent value="list" className="space-y-6 mt-6">
+            <Card className="shadow-lg">
+              <CardHeader>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Package className="h-5 w-5" />
+                      Danh sách sản phẩm
+                    </CardTitle>
+                    <CardDescription>
+                      {filteredProducts.length} / {products?.length || 0} sản phẩm
+                    </CardDescription>
+                  </div>
+
+                  {/* Filters */}
+                  <div className="flex flex-wrap gap-3">
+                    <div className="relative w-full md:w-64">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Tìm kiếm sản phẩm..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+
+                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                      <SelectTrigger className="w-[150px]">
+                        <SelectValue placeholder="Danh mục" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tất cả</SelectItem>
+                        {categories?.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.name}>
+                            {cat.name_vi}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={badgeFilter} onValueChange={setBadgeFilter}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Nhãn" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tất cả</SelectItem>
+                        <SelectItem value="new">Mới</SelectItem>
+                        <SelectItem value="sale">Giảm giá</SelectItem>
+                        <SelectItem value="rare">Hiếm</SelectItem>
+                        <SelectItem value="none">Không nhãn</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent>
+                {productsLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : filteredProducts.length > 0 ? (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[80px]">Ảnh</TableHead>
+                          <TableHead>Tên sản phẩm</TableHead>
+                          <TableHead>Thương hiệu</TableHead>
+                          <TableHead>Danh mục</TableHead>
+                          <TableHead className="text-right">Giá</TableHead>
+                          <TableHead className="text-center">Tồn</TableHead>
+                          <TableHead className="text-center">Nhãn</TableHead>
+                          <TableHead className="text-right">Thao tác</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredProducts.map((product) => (
+                          <TableRow key={product.id} className="hover:bg-muted/50">
+                            <TableCell>
+                              {product.image_url ? (
+                                <img
+                                  src={product.image_url}
+                                  alt={product.name}
+                                  className="h-14 w-14 object-cover rounded"
+                                />
+                              ) : (
+                                <div className="h-14 w-14 bg-muted rounded flex items-center justify-center">
+                                  <Package className="h-6 w-6 text-muted-foreground" />
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell className="font-medium max-w-[200px]">
+                              <div className="truncate">{product.name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {product.condition}
+                              </div>
+                            </TableCell>
+                            <TableCell>{product.brand}</TableCell>
+                            <TableCell>
+                              {categories?.find((c) => c.name === product.category)
+                                ?.name_vi || "-"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="font-semibold">
+                                {new Intl.NumberFormat("vi-VN").format(product.price)}₫
+                              </div>
+                              {product.original_price && (
+                                <div className="text-xs text-muted-foreground line-through">
+                                  {new Intl.NumberFormat("vi-VN").format(
+                                    product.original_price
+                                  )}
+                                  ₫
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge
+                                variant={product.stock < 5 ? "destructive" : "secondary"}
+                              >
+                                {product.stock}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {product.badge && (
+                                <Badge variant="outline">
+                                  {product.badge === "new" && "🆕 Mới"}
+                                  {product.badge === "sale" && "🔥 Sale"}
+                                  {product.badge === "rare" && "💎 Hiếm"}
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleEdit(product)}
+                                  title="Chỉnh sửa"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleDelete(product)}
+                                  title="Xóa"
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground mb-4">
+                      {searchQuery || categoryFilter !== "all" || badgeFilter !== "all"
+                        ? "Không tìm thấy sản phẩm phù hợp"
+                        : "Chưa có sản phẩm nào"}
+                    </p>
+                    {(!searchQuery && categoryFilter === "all" && badgeFilter === "all") && (
+                      <Button onClick={() => setActiveTab("add")}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Thêm sản phẩm đầu tiên
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Add Product Tab */}
+          <TabsContent value="add" className="mt-6">
+            <AddProductForm onSuccess={() => setActiveTab("list")} />
+          </TabsContent>
         </Tabs>
       </div>
+
+      {/* Dialogs */}
+      <EditProductDialog
+        product={selectedProduct}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+      />
+      <DeleteProductDialog
+        product={selectedProduct}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+      />
     </div>
   );
 };
