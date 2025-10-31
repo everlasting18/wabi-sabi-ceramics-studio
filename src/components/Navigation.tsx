@@ -11,12 +11,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
+import { useCart } from "@/contexts/CartContext";
 
 const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { getCartCount } = useCart();
   const navigate = useNavigate();
+
+  const cartCount = getCartCount();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -114,13 +118,15 @@ const Navigation = () => {
                   0
                 </span>
               </Button>
-              
+
               <Button variant="ghost" size="icon" className="hover:text-primary relative" asChild>
                 <Link to="/cart">
                   <ShoppingCart className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                    2
-                  </span>
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center font-medium">
+                      {cartCount > 99 ? '99+' : cartCount}
+                    </span>
+                  )}
                 </Link>
               </Button>
             </div>
@@ -224,11 +230,13 @@ const Navigation = () => {
                 </span>
               </Button>
               <Button variant="ghost" size="icon" className="relative" asChild>
-                <Link to="/cart">
+                <Link to="/cart" onClick={() => setIsMobileMenuOpen(false)}>
                   <ShoppingCart className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                    2
-                  </span>
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center font-medium">
+                      {cartCount > 99 ? '99+' : cartCount}
+                    </span>
+                  )}
                 </Link>
               </Button>
             </div>
