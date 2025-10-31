@@ -82,26 +82,29 @@ const products = [
 
 const FeaturedProducts = () => {
   return (
-    <section className="py-20 lg:py-32 bg-background">
-      <div className="container mx-auto px-6 lg:px-20">
+    <section className="py-24 lg:py-40 bg-background relative overflow-hidden">
+      {/* Decorative background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/20 to-background" />
+      
+      <div className="container mx-auto px-6 lg:px-20 relative z-10">
         {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <p className="eyebrow mb-4">Được chọn lọc đặc biệt</p>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-serif text-charcoal mb-4">
+        <div className="text-center max-w-3xl mx-auto mb-20 animate-fade-up">
+          <p className="eyebrow mb-6">Được chọn lọc đặc biệt</p>
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif text-foreground mb-6 leading-tight">
             Sản phẩm nổi bật
           </h2>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
             Những món đồ gốm tuyệt đẹp được nhập trực tiếp từ Nhật Bản
           </p>
         </div>
 
         {/* Product Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-8 mb-16">
           {products.map((product, index) => (
             <div
               key={product.id}
               className="animate-fade-up"
-              style={{ animationDelay: `${index * 0.05}s` }}
+              style={{ animationDelay: `${index * 0.08}s` }}
             >
               <ProductCard {...product} />
             </div>
@@ -109,11 +112,11 @@ const FeaturedProducts = () => {
         </div>
 
         {/* CTA */}
-        <div className="text-center">
+        <div className="text-center animate-fade-up" style={{ animationDelay: "0.8s" }}>
           <Button
             size="lg"
             variant="outline"
-            className="btn-ghost px-8"
+            className="btn-ghost px-10 py-6 text-base font-semibold shadow-md hover:shadow-xl"
           >
             Xem tất cả sản phẩm
           </Button>

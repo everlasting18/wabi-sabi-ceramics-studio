@@ -20,26 +20,30 @@ const usps = [
 
 const USPSection = () => {
   return (
-    <section className="py-20 lg:py-32 bg-gradient-to-b from-muted/30 to-background">
-      <div className="container mx-auto px-6 lg:px-20">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+    <section className="py-24 lg:py-40 bg-gradient-to-b from-muted/30 via-muted/50 to-background relative overflow-hidden">
+      {/* Decorative elements */}
+      <div className="absolute top-20 right-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-20 left-10 w-64 h-64 bg-secondary/5 rounded-full blur-3xl" />
+      
+      <div className="container mx-auto px-6 lg:px-20 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 lg:gap-16">
           {usps.map((usp, index) => {
             const Icon = usp.icon;
             return (
               <div
                 key={usp.title}
-                className="text-center animate-fade-up"
-                style={{ animationDelay: `${index * 0.1}s` }}
+                className="text-center animate-fade-up group"
+                style={{ animationDelay: `${index * 0.15}s` }}
               >
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-6">
-                  <Icon className="w-8 h-8" />
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary mb-8 shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-500">
+                  <Icon className="w-10 h-10" strokeWidth={1.5} />
                 </div>
                 
-                <h3 className="text-xl font-serif font-medium mb-3">
+                <h3 className="text-2xl font-serif font-semibold mb-4 text-foreground group-hover:text-primary transition-colors duration-300">
                   {usp.title}
                 </h3>
                 
-                <p className="text-muted-foreground leading-relaxed">
+                <p className="text-muted-foreground leading-relaxed text-base">
                   {usp.description}
                 </p>
               </div>
