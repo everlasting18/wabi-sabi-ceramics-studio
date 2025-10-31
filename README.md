@@ -222,7 +222,19 @@ VITE_SUPABASE_PROJECT_ID=izaetfahekjfacppzsis
 
 > ⚠️ **Lưu ý**: Thay thế `your_supabase_anon_key` bằng anon key thực tế từ Supabase project của bạn.
 
-### Bước 4: Chạy Development Server
+### Bước 4: Thiết Lập Database
+
+Chạy SQL migration để tạo database schema:
+
+1. Đăng nhập vào [Supabase Dashboard](https://supabase.com/dashboard)
+2. Chọn project của bạn
+3. Vào **SQL Editor**
+4. Copy nội dung file `supabase/migrations/001_create_products_table.sql`
+5. Paste và chạy SQL
+
+Xem chi tiết trong file [DATABASE_SETUP.md](./DATABASE_SETUP.md)
+
+### Bước 5: Chạy Development Server
 
 ```bash
 npm run dev
@@ -256,6 +268,7 @@ npm run build:dev
 | `/checkout` | `Checkout.tsx` | Quy trình thanh toán 3 bước |
 | `/order-confirmation/:orderId` | `OrderConfirmation.tsx` | Xác nhận đơn hàng thành công |
 | `/auth` | `Auth.tsx` | Đăng nhập/Đăng ký |
+| `/admin` | `Admin.tsx` | Quản lý sản phẩm (yêu cầu đăng nhập) |
 | `/account` | *(Đang phát triển)* | Quản lý tài khoản |
 | `/orders` | *(Đang phát triển)* | Lịch sử đơn hàng |
 | `*` | `NotFound.tsx` | Trang 404 |
@@ -293,28 +306,68 @@ npm run build:dev
 
 ### Trạng Thái Hiện Tại
 
-⚠️ **Database schema hiện đang trống** - chưa có tables được tạo.
+✅ **Database schema đã được tạo** - Sẵn sàng để sử dụng!
 
-Dữ liệu sản phẩm hiện tại được hardcode trong components để demo. Để production-ready, cần implement:
+### Tables Đã Implement
 
-### Tables Cần Thiết (Planned)
-
+#### 1. **products** - Bảng sản phẩm
 ```sql
--- Users (quản lý bởi Supabase Auth)
--- Products
--- Categories
--- Orders
--- Order Items
--- Cart Items
--- Reviews
--- Coupons
+- id (UUID, Primary Key)
+- name (VARCHAR) - Tên sản phẩm
+- brand (VARCHAR) - Thương hiệu
+- description (TEXT) - Mô tả
+- price (DECIMAL) - Giá bán
+- original_price (DECIMAL) - Giá gốc
+- condition (VARCHAR) - Tình trạng
+- badge (ENUM) - Nhãn: new/sale/rare
+- image_url (TEXT) - URL hình ảnh
+- images (JSONB) - Array hình ảnh
+- category (VARCHAR) - Danh mục
+- stock (INTEGER) - Tồn kho
+- is_active (BOOLEAN) - Trạng thái
+- created_at, updated_at, created_by
+```
+
+#### 2. **categories** - Bảng danh mục
+```sql
+- id (UUID, Primary Key)
+- name (VARCHAR) - Tên (EN)
+- name_vi (VARCHAR) - Tên (VI)
+- description (TEXT)
+- image_url (TEXT)
+- created_at
 ```
 
 ### Data Hiện Tại
 
-- **Mock data**: Sản phẩm được hardcode trong `FeaturedProducts.tsx`
+- **Database**: PostgreSQL trên Supabase
 - **Auth storage**: Supabase Auth tự động quản lý users
 - **Session**: localStorage
+- **RLS Policies**: Đã thiết lập bảo mật row-level
+
+### Chức Năng CRUD Sản Phẩm
+
+Sử dụng các service functions trong `src/services/productService.ts`:
+
+```typescript
+// Lấy tất cả sản phẩm
+await getAllProducts();
+
+// Lấy sản phẩm theo ID
+await getProductById(id);
+
+// Tạo sản phẩm mới
+await createProduct(productData);
+
+// Cập nhật sản phẩm
+await updateProduct(id, updates);
+
+// Xóa sản phẩm (soft delete)
+await deleteProduct(id);
+
+// Tìm kiếm sản phẩm
+await searchProducts(query);
+```
 
 ## 🎨 Design System
 
@@ -373,6 +426,35 @@ VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
 VITE_SUPABASE_PROJECT_ID=your_project_id
 ```
 
+## 🎯 Quản Lý Sản Phẩm (Admin)
+
+### Truy cập Admin Panel
+
+Sau khi đăng nhập, truy cập: **http://localhost:8080/admin**
+
+### Tính Năng Admin
+
+1. **Thêm Sản Phẩm Mới**
+   - Form nhập liệu đầy đủ với validation
+   - Upload URL hình ảnh
+   - Chọn danh mục từ dropdown
+   - Thiết lập nhãn (New/Sale/Rare)
+   - Quản lý tồn kho
+
+2. **Xem Danh Sách Sản Phẩm**
+   - Hiển thị tất cả sản phẩm
+   - Thông tin chi tiết: giá, tồn kho, ngày tạo
+   - Badge nhãn trực quan
+
+3. **Bảo Mật**
+   - Chỉ user đã đăng nhập mới truy cập được
+   - Row Level Security (RLS) policies
+   - Mỗi user chỉ sửa/xóa sản phẩm của họ
+
+### Video Demo
+
+*(Thêm video demo nếu có)*
+
 ## 📝 Development Roadmap
 
 ### ✅ Đã Hoàn Thành
@@ -386,16 +468,22 @@ VITE_SUPABASE_PROJECT_ID=your_project_id
 - [x] Responsive Mobile Design
 - [x] Navigation & Routing
 - [x] Form Validation
+- [x] **Database Schema (Products & Categories)**
+- [x] **Product Service Functions (CRUD)**
+- [x] **Admin Panel cho quản lý sản phẩm**
+- [x] **Row Level Security (RLS)**
 
 ### ⚠️ Đang Phát Triển
 
 - [ ] Payment Gateway Integration (COD, MoMo, VNPay)
-- [ ] Database Schema & Real Product Data
-- [ ] Order Tracking System
+- [ ] Order Tracking System với real-time updates
 - [ ] Product Reviews & Ratings
 - [ ] Q&A Section
-- [ ] Search Functionality
+- [ ] Search Functionality với filters
 - [ ] Persistent Wishlist
+- [ ] Upload hình ảnh trực tiếp (Supabase Storage)
+- [ ] Bulk import sản phẩm (CSV/Excel)
+- [ ] Product analytics dashboard
 
 ### 🔮 Tương Lai
 

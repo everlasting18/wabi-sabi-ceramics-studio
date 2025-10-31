@@ -14,7 +14,88 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      products: {
+        Row: {
+          id: string
+          name: string
+          brand: string
+          description: string | null
+          price: number
+          original_price: number | null
+          condition: string
+          badge: 'new' | 'sale' | 'rare' | null
+          image_url: string | null
+          images: string[] | null
+          category: string | null
+          stock: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          brand: string
+          description?: string | null
+          price: number
+          original_price?: number | null
+          condition: string
+          badge?: 'new' | 'sale' | 'rare' | null
+          image_url?: string | null
+          images?: string[] | null
+          category?: string | null
+          stock?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          brand?: string
+          description?: string | null
+          price?: number
+          original_price?: number | null
+          condition?: string
+          badge?: 'new' | 'sale' | 'rare' | null
+          image_url?: string | null
+          images?: string[] | null
+          category?: string | null
+          stock?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+      }
+      categories: {
+        Row: {
+          id: string
+          name: string
+          name_vi: string
+          description: string | null
+          image_url: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          name_vi: string
+          description?: string | null
+          image_url?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          name_vi?: string
+          description?: string | null
+          image_url?: string | null
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +104,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      product_badge: 'new' | 'sale' | 'rare'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +231,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      product_badge: ['new', 'sale', 'rare'] as const,
+    },
   },
 } as const
