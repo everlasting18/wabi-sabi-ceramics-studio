@@ -36,10 +36,10 @@ const Navigation = () => {
   };
 
   const menuItems = [
-    { label: "Sản phẩm", href: "#products" },
-    { label: "Bộ sưu tập", href: "#collections" },
-    { label: "Blog", href: "#blog" },
-    { label: "Về chúng tôi", href: "#about" },
+    { label: "Sản phẩm", href: "/products", isRoute: true },
+    { label: "Bộ sưu tập", href: "#collections", isRoute: false },
+    { label: "Blog", href: "#blog", isRoute: false },
+    { label: "Về chúng tôi", href: "#about", isRoute: false },
   ];
 
   return (
@@ -62,15 +62,25 @@ const Navigation = () => {
 
             {/* Desktop Menu */}
             <div className="hidden lg:flex items-center space-x-8">
-              {menuItems.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  className="text-sm font-medium text-foreground hover:text-primary transition-colors link-underline"
-                >
-                  {item.label}
-                </a>
-              ))}
+              {menuItems.map((item) =>
+                item.isRoute ? (
+                  <Link
+                    key={item.label}
+                    to={item.href}
+                    className="text-sm font-medium text-foreground hover:text-primary transition-colors link-underline"
+                  >
+                    {item.label}
+                  </Link>
+                ) : (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    className="text-sm font-medium text-foreground hover:text-primary transition-colors link-underline"
+                  >
+                    {item.label}
+                  </a>
+                )
+              )}
             </div>
 
             {/* Desktop Actions */}
@@ -167,16 +177,27 @@ const Navigation = () => {
         >
           <div className="flex flex-col h-full p-6 pt-24">
             <div className="flex flex-col space-y-6 mb-8">
-              {menuItems.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  className="text-lg font-medium text-foreground hover:text-primary transition-colors"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {item.label}
-                </a>
-              ))}
+              {menuItems.map((item) =>
+                item.isRoute ? (
+                  <Link
+                    key={item.label}
+                    to={item.href}
+                    className="text-lg font-medium text-foreground hover:text-primary transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {item.label}
+                  </Link>
+                ) : (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    className="text-lg font-medium text-foreground hover:text-primary transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {item.label}
+                  </a>
+                )
+              )}
             </div>
 
             {/* Mobile User Menu */}
