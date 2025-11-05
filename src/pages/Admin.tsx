@@ -27,8 +27,10 @@ import {
 } from "@/components/ui/table";
 import { getAllProducts, getAllCategories, type Product } from "@/services/productService";
 import { getAllOrders, updateOrderStatus, updatePaymentStatus, type Order, type OrderItem } from "@/services/orderService";
+import { getAllGalleries, deleteGallery, togglePublishGallery, type Gallery } from "@/services/galleryService";
 import OrderStatusBadge from "@/components/OrderStatusBadge";
 import PaymentStatusBadge from "@/components/PaymentStatusBadge";
+import GalleryForm from "@/components/GalleryForm";
 import {
   Loader2,
   Package,
@@ -43,6 +45,7 @@ import {
   ShoppingBag,
   AlertCircle,
   ClipboardList,
+  Images,
 } from "lucide-react";
 
 const Admin = () => {
@@ -54,6 +57,8 @@ const Admin = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedGallery, setSelectedGallery] = useState<Gallery | null>(null);
+  const [showGalleryForm, setShowGalleryForm] = useState(false);
 
   // Fetch data
   const { data: products, isLoading: productsLoading } = useQuery({
@@ -71,6 +76,12 @@ const Admin = () => {
   const { data: orders, isLoading: ordersLoading } = useQuery({
     queryKey: ["all-orders"],
     queryFn: getAllOrders,
+    enabled: !!user,
+  });
+
+  const { data: galleries, isLoading: galleriesLoading } = useQuery({
+    queryKey: ["galleries"],
+    queryFn: getAllGalleries,
     enabled: !!user,
   });
 
@@ -119,6 +130,37 @@ const Admin = () => {
   const handleDelete = (product: Product) => {
     setSelectedProduct(product);
     setDeleteDialogOpen(true);
+  };
+
+  // Gallery handlers
+  const handleEditGallery = (gallery: Gallery) => {
+    setSelectedGallery(gallery);
+    setShowGalleryForm(true);
+  };
+
+  const handleNewGallery = () => {
+    setSelectedGallery(null);
+    setShowGalleryForm(true);
+  };
+
+  const handleDeleteGallery = async (id: string) => {
+    if (confirm("Bạn có chắc muốn xóa bộ sưu tập này?")) {
+      try {
+        await deleteGallery(id);
+        window.location.reload();
+      } catch (error) {
+        console.error("Error deleting gallery:", error);
+      }
+    }
+  };
+
+  const handleTogglePublish = async (id: string, isPublished: boolean) => {
+    try {
+      await togglePublishGallery(id, !isPublished);
+      window.location.reload();
+    } catch (error) {
+      console.error("Error toggling publish status:", error);
+    }
   };
 
   // Redirect if not authenticated
@@ -175,7 +217,7 @@ const Admin = () => {
       {/* Content */}
       <div className="container mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-4 h-12">
+          <TabsList className="grid w-full max-w-4xl mx-auto grid-cols-5 h-12">
             <TabsTrigger value="overview" className="text-base">
               <BarChart3 className="h-4 w-4 mr-2" />
               Tổng quan
@@ -187,6 +229,10 @@ const Admin = () => {
             <TabsTrigger value="orders" className="text-base">
               <ClipboardList className="h-4 w-4 mr-2" />
               Đơn hàng
+            </TabsTrigger>
+            <TabsTrigger value="galleries" className="text-base">
+              <Images className="h-4 w-4 mr-2" />
+              Bộ sưu tập
             </TabsTrigger>
             <TabsTrigger value="add" className="text-base">
               <Plus className="h-4 w-4 mr-2" />
@@ -667,6 +713,154 @@ const Admin = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Galleries Tab */}
+          <TabsContent value="galleries" className="space-y-6 mt-6">
+            {showGalleryForm ? (
+              <div className="space-y-4">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setShowGalleryForm(false);
+                    setSelectedGallery(null);
+                  }}
+                >
+                  ← Quay lại danh sách
+                </Button>
+                <GalleryForm
+                  gallery={selectedGallery || undefined}
+                  onSuccess={() => {
+                    setShowGalleryForm(false);
+                    setSelectedGallery(null);
+                  }}
+                />
+              </div>
+            ) : (
+              <Card className="shadow-lg">
+                <CardHeader>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Images className="h-5 w-5" />
+                        Quản lý bộ sưu tập
+                      </CardTitle>
+                      <CardDescription>
+                        {galleries?.length || 0} bộ sưu tập
+                      </CardDescription>
+                    </div>
+                    <Button onClick={handleNewGallery}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Tạo bộ sưu tập mới
+                    </Button>
+                  </div>
+                </CardHeader>
+
+                <CardContent>
+                  {galleriesLoading ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : galleries && galleries.length > 0 ? (
+                    <div className="space-y-4">
+                      {galleries.map((gallery) => {
+                        const imageCount = gallery.images.length;
+                        const firstImage = gallery.images[0];
+
+                        return (
+                          <div
+                            key={gallery.id}
+                            className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex gap-4">
+                              {/* Thumbnail */}
+                              {firstImage && (
+                                <div className="flex-shrink-0">
+                                  <img
+                                    src={firstImage.thumbnailUrl || firstImage.url}
+                                    alt={gallery.title}
+                                    className="w-24 h-24 object-cover rounded"
+                                  />
+                                </div>
+                              )}
+
+                              {/* Info */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-4 mb-2">
+                                  <div>
+                                    <h3 className="font-semibold text-lg truncate">
+                                      {gallery.title}
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">
+                                      {imageCount} ảnh • Tạo ngày{" "}
+                                      {new Date(gallery.created_at).toLocaleDateString("vi-VN")}
+                                    </p>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Badge variant={gallery.is_published ? "default" : "secondary"}>
+                                      {gallery.is_published ? "Đã xuất bản" : "Bản nháp"}
+                                    </Badge>
+                                  </div>
+                                </div>
+
+                                {/* Description preview */}
+                                {gallery.description && (
+                                  <div
+                                    className="text-sm text-muted-foreground line-clamp-2 mb-3"
+                                    dangerouslySetInnerHTML={{
+                                      __html: gallery.description.replace(/<[^>]*>/g, " ").substring(0, 150),
+                                    }}
+                                  />
+                                )}
+
+                                {/* Actions */}
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEditGallery(gallery)}
+                                  >
+                                    <Edit className="w-4 h-4 mr-1" />
+                                    Chỉnh sửa
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      handleTogglePublish(gallery.id, gallery.is_published)
+                                    }
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    {gallery.is_published ? "Ẩn" : "Xuất bản"}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => handleDeleteGallery(gallery.id)}
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-1" />
+                                    Xóa
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Images className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground mb-4">Chưa có bộ sưu tập nào</p>
+                      <Button onClick={handleNewGallery}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Tạo bộ sưu tập đầu tiên
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Add Product Tab */}

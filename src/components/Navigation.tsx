@@ -37,7 +37,7 @@ const Navigation = () => {
 
   const menuItems = [
     { label: "Sản phẩm", href: "/products", isRoute: true },
-    { label: "Bộ sưu tập", href: "#collections", isRoute: false },
+    { label: "Bộ sưu tập", href: "/galleries", isRoute: true },
     { label: "Blog", href: "#blog", isRoute: false },
     { label: "Về chúng tôi", href: "#about", isRoute: false },
   ];
