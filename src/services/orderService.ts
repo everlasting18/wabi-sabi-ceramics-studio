@@ -92,13 +92,24 @@ export const createOrder = async (
       data: { user },
     } = await supabase.auth.getUser();
 
+    // Validate user.id if present
+    let userId: string | null = null;
+    if (user?.id) {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (uuidRegex.test(user.id)) {
+        userId = user.id;
+      } else {
+        console.warn("Invalid user ID format, creating order as guest");
+      }
+    }
+
     // Generate order number
     const orderNumber = generateOrderNumber();
 
     // Prepare order data
     const order = {
       order_number: orderNumber,
-      user_id: user?.id || null,
+      user_id: userId,
       customer_name: orderData.customer_name,
       customer_email: orderData.customer_email,
       customer_phone: orderData.customer_phone,
@@ -200,8 +211,14 @@ export const getUserOrders = async (): Promise<Order[]> => {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (!user || !user.id) {
       throw new Error("User not authenticated");
+    }
+
+    // Validate user.id is a valid UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(user.id)) {
+      throw new Error("Invalid user ID format");
     }
 
     const { data, error } = await supabase
@@ -250,6 +267,11 @@ export const updateOrderStatus = async (
   status: Order["status"]
 ): Promise<void> => {
   try {
+    // Validate orderId is a valid number
+    if (!orderId || isNaN(orderId) || orderId <= 0) {
+      throw new Error("Invalid order ID");
+    }
+
     const { error } = await supabase
       .from("orders")
       .update({ status })
@@ -272,6 +294,11 @@ export const updatePaymentStatus = async (
   paymentStatus: Order["payment_status"]
 ): Promise<void> => {
   try {
+    // Validate orderId is a valid number
+    if (!orderId || isNaN(orderId) || orderId <= 0) {
+      throw new Error("Invalid order ID");
+    }
+
     const { error } = await supabase
       .from("orders")
       .update({ payment_status: paymentStatus })
