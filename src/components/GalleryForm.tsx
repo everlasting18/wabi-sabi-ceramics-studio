@@ -177,6 +177,7 @@ const GalleryForm = ({ gallery, onSuccess }: GalleryFormProps) => {
               <CKEditor
                 editor={ClassicEditor}
                 config={{
+                  licenseKey: 'GPL', // GPL license for open source projects
                   plugins: [
                     Essentials, Bold, Italic, Paragraph, Undo, Heading, Link, List,
                     Image, ImageUpload, Base64UploadAdapter,
