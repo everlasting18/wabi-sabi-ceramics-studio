@@ -26,7 +26,7 @@ const ProductDetail = () => {
     isError,
   } = useQuery({
     queryKey: ["product", id],
-    queryFn: () => getProductById(Number(id)),
+    queryFn: () => getProductById(id!),
     enabled: !!id,
   });
 

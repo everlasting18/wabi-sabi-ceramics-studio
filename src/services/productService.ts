@@ -28,6 +28,17 @@ export const getAllProducts = async () => {
  * Get product by ID
  */
 export const getProductById = async (id: string) => {
+  // Validate ID format (should be a valid UUID)
+  if (!id || id === "NaN" || id === "undefined" || id === "null") {
+    throw new Error("Invalid product ID");
+  }
+
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    throw new Error("Product ID must be a valid UUID");
+  }
+
   const { data, error } = await supabase
     .from("products")
     .select("*")
