@@ -222,6 +222,27 @@ export const getUserOrders = async (): Promise<Order[]> => {
 };
 
 /**
+ * Get all orders (admin only)
+ */
+export const getAllOrders = async (): Promise<Order[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return (data as Order[]) || [];
+  } catch (error) {
+    console.error("Error getting all orders:", error);
+    throw error;
+  }
+};
+
+/**
  * Update order status
  */
 export const updateOrderStatus = async (

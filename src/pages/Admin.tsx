@@ -26,6 +26,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getAllProducts, getAllCategories, type Product } from "@/services/productService";
+import { getAllOrders, updateOrderStatus, updatePaymentStatus, type Order, type OrderItem } from "@/services/orderService";
+import OrderStatusBadge from "@/components/OrderStatusBadge";
+import PaymentStatusBadge from "@/components/PaymentStatusBadge";
 import {
   Loader2,
   Package,
@@ -39,6 +42,7 @@ import {
   TrendingUp,
   ShoppingBag,
   AlertCircle,
+  ClipboardList,
 } from "lucide-react";
 
 const Admin = () => {
@@ -61,6 +65,12 @@ const Admin = () => {
   const { data: categories } = useQuery({
     queryKey: ["categories"],
     queryFn: getAllCategories,
+    enabled: !!user,
+  });
+
+  const { data: orders, isLoading: ordersLoading } = useQuery({
+    queryKey: ["all-orders"],
+    queryFn: getAllOrders,
     enabled: !!user,
   });
 
@@ -165,14 +175,18 @@ const Admin = () => {
       {/* Content */}
       <div className="container mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-3 h-12">
+          <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-4 h-12">
             <TabsTrigger value="overview" className="text-base">
               <BarChart3 className="h-4 w-4 mr-2" />
               Tổng quan
             </TabsTrigger>
             <TabsTrigger value="list" className="text-base">
               <Package className="h-4 w-4 mr-2" />
-              Danh sách
+              Sản phẩm
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="text-base">
+              <ClipboardList className="h-4 w-4 mr-2" />
+              Đơn hàng
             </TabsTrigger>
             <TabsTrigger value="add" className="text-base">
               <Plus className="h-4 w-4 mr-2" />
@@ -492,6 +506,163 @@ const Admin = () => {
                         Thêm sản phẩm đầu tiên
                       </Button>
                     )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Orders Tab */}
+          <TabsContent value="orders" className="space-y-6 mt-6">
+            <Card className="shadow-lg">
+              <CardHeader>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <ClipboardList className="h-5 w-5" />
+                      Quản lý đơn hàng
+                    </CardTitle>
+                    <CardDescription>
+                      {orders?.length || 0} đơn hàng
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent>
+                {ordersLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : orders && orders.length > 0 ? (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Mã đơn hàng</TableHead>
+                          <TableHead>Khách hàng</TableHead>
+                          <TableHead>Ngày đặt</TableHead>
+                          <TableHead className="text-right">Tổng tiền</TableHead>
+                          <TableHead className="text-center">Trạng thái đơn</TableHead>
+                          <TableHead className="text-center">Thanh toán</TableHead>
+                          <TableHead className="text-right">Thao tác</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {orders.map((order) => {
+                          const orderItems = order.items as OrderItem[];
+                          const itemCount = orderItems.length;
+
+                          return (
+                            <TableRow key={order.id} className="hover:bg-muted/50">
+                              <TableCell className="font-medium">
+                                <div>{order.order_number}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {itemCount} sản phẩm
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="max-w-[180px]">
+                                  <div className="font-medium truncate">{order.customer_name}</div>
+                                  <div className="text-xs text-muted-foreground truncate">
+                                    {order.customer_phone}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm">
+                                  {new Date(order.created_at).toLocaleDateString("vi-VN")}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {new Date(order.created_at).toLocaleTimeString("vi-VN", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="font-semibold">
+                                  {order.total.toLocaleString("vi-VN")}₫
+                                </div>
+                                {order.discount > 0 && (
+                                  <div className="text-xs text-green-600">
+                                    Giảm {order.discount.toLocaleString("vi-VN")}₫
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Select
+                                  value={order.status}
+                                  onValueChange={async (newStatus) => {
+                                    try {
+                                      await updateOrderStatus(order.id, newStatus as Order["status"]);
+                                      window.location.reload();
+                                    } catch (error) {
+                                      console.error("Error updating order status:", error);
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[140px]">
+                                    <SelectValue>
+                                      <OrderStatusBadge status={order.status} />
+                                    </SelectValue>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="pending">Chờ xác nhận</SelectItem>
+                                    <SelectItem value="confirmed">Đã xác nhận</SelectItem>
+                                    <SelectItem value="processing">Đang xử lý</SelectItem>
+                                    <SelectItem value="shipping">Đang giao</SelectItem>
+                                    <SelectItem value="delivered">Đã giao</SelectItem>
+                                    <SelectItem value="cancelled">Đã hủy</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Select
+                                  value={order.payment_status}
+                                  onValueChange={async (newStatus) => {
+                                    try {
+                                      await updatePaymentStatus(order.id, newStatus as Order["payment_status"]);
+                                      window.location.reload();
+                                    } catch (error) {
+                                      console.error("Error updating payment status:", error);
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[140px]">
+                                    <SelectValue>
+                                      <PaymentStatusBadge status={order.payment_status} />
+                                    </SelectValue>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="unpaid">Chưa thanh toán</SelectItem>
+                                    <SelectItem value="paid">Đã thanh toán</SelectItem>
+                                    <SelectItem value="refunded">Đã hoàn tiền</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => window.open(`/order-confirmation/${order.order_number}`, '_blank')}
+                                  title="Xem chi tiết"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">
+                      Chưa có đơn hàng nào
+                    </p>
                   </div>
                 )}
               </CardContent>
