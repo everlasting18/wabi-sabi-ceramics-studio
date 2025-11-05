@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Heart, Share2, Star, CheckCircle2, Info } from "lucide-react";
+import { Heart, Share2, Star, CheckCircle2, Info, Ruler, Package, MapPin, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -10,42 +10,18 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { toast } from "sonner";
+import AddToCartButton from "@/components/AddToCartButton";
+import type { Product } from "@/services/productService";
 
 interface ProductInfoProps {
-  brand: string;
-  name: string;
-  price: string;
-  originalPrice?: string;
-  condition: {
-    rating: string;
-    details: string[];
-  };
-  description: string;
-  features: Array<{
-    icon: React.ReactNode;
-    label: string;
-    value: string;
-  }>;
-  specifications: Array<{
-    label: string;
-    value: string;
-  }>;
+  product: Product;
 }
 
-const ProductInfo = ({
-  brand,
-  name,
-  price,
-  originalPrice,
-  condition,
-  description,
-  features,
-  specifications,
-}: ProductInfoProps) => {
+const ProductInfo = ({ product }: ProductInfoProps) => {
   const [isWishlisted, setIsWishlisted] = useState(false);
 
-  const handleAddToCart = () => {
-    toast.success("Đã thêm vào giỏ hàng!");
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("vi-VN").format(price) + "₫";
   };
 
   const handleWishlist = () => {
@@ -58,17 +34,75 @@ const ProductInfo = ({
     toast.success("Đã copy link sản phẩm!");
   };
 
+  // Generate condition details based on stock
+  const conditionDetails = [
+    product.stock > 0 ? "✓ Còn hàng" : "⚠ Hết hàng",
+    "✓ 100% chính hãng từ Nhật Bản",
+    "✓ Đã kiểm tra chất lượng",
+  ];
+
+  // Features
+  const features = [
+    {
+      icon: <Package className="w-5 h-5" />,
+      label: "Chất liệu",
+      value: "Gốm sứ cao cấp",
+    },
+    {
+      icon: <MapPin className="w-5 h-5" />,
+      label: "Xuất xứ",
+      value: "Nhật Bản",
+    },
+    {
+      icon: <Ruler className="w-5 h-5" />,
+      label: "Tình trạng",
+      value: product.condition,
+    },
+    {
+      icon: <Calendar className="w-5 h-5" />,
+      label: "Thương hiệu",
+      value: product.brand,
+    },
+  ];
+
+  // Specifications
+  const specifications = [
+    { label: "Thương hiệu", value: product.brand },
+    { label: "Danh mục", value: product.category || "Đồ gốm" },
+    { label: "Tình trạng", value: product.condition },
+    { label: "Chất liệu", value: "Gốm sứ" },
+    { label: "Xuất xứ", value: "Nhật Bản" },
+    { label: "Tồn kho", value: `${product.stock} sản phẩm` },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Brand & Category */}
       <div className="space-y-1">
-        <p className="eyebrow text-primary">{brand}</p>
+        <p className="eyebrow text-primary">{product.brand}</p>
         <h1 className="text-3xl lg:text-4xl font-serif text-charcoal leading-tight">
-          {name}
+          {product.name}
         </h1>
       </div>
 
-      {/* Rating & Reviews */}
+      {/* Badge */}
+      {product.badge && (
+        <div>
+          <Badge
+            className={
+              product.badge === "new"
+                ? "bg-sage-green text-white"
+                : product.badge === "sale"
+                ? "bg-rust-orange text-white"
+                : "bg-indigo-blue text-white"
+            }
+          >
+            {product.badge === "new" ? "🆕 Mới về" : product.badge === "sale" ? "🔥 Sale" : "💎 Hiếm"}
+          </Badge>
+        </div>
+      )}
+
+      {/* Rating & Reviews - Mock for now */}
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-1">
           {[...Array(5)].map((_, i) => (
@@ -89,26 +123,28 @@ const ProductInfo = ({
 
       {/* Price */}
       <div className="flex items-baseline gap-3">
-        <span className="text-3xl font-bold text-primary">{price}</span>
-        {originalPrice && (
+        <span className="text-3xl font-bold text-primary">
+          {formatPrice(product.price)}
+        </span>
+        {product.original_price && product.original_price > product.price && (
           <span className="text-xl text-muted-foreground line-through">
-            {originalPrice}
+            {formatPrice(product.original_price)}
           </span>
         )}
       </div>
 
       <Separator />
 
-      {/* Condition Badge */}
+      {/* Stock Status */}
       <div className="bg-muted/50 rounded p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <Badge className="bg-sage-green text-white">
-            Tình trạng: {condition.rating}
+          <Badge className={product.stock > 0 ? "bg-sage-green text-white" : "bg-red-600 text-white"}>
+            {product.stock > 0 ? `Còn ${product.stock} sản phẩm` : "Hết hàng"}
           </Badge>
           <Info className="w-4 h-4 text-muted-foreground" />
         </div>
         <ul className="space-y-2">
-          {condition.details.map((detail, index) => (
+          {conditionDetails.map((detail, index) => (
             <li key={index} className="flex items-start gap-2 text-sm">
               {detail.includes("✓") ? (
                 <CheckCircle2 className="w-4 h-4 text-sage-green flex-shrink-0 mt-0.5" />
@@ -122,7 +158,9 @@ const ProductInfo = ({
       </div>
 
       {/* Short Description */}
-      <p className="text-muted-foreground leading-relaxed">{description}</p>
+      {product.description && (
+        <p className="text-muted-foreground leading-relaxed">{product.description}</p>
+      )}
 
       {/* Key Features */}
       <div className="grid grid-cols-2 gap-4">
@@ -141,13 +179,7 @@ const ProductInfo = ({
 
       {/* Actions */}
       <div className="space-y-3">
-        <Button
-          size="lg"
-          className="w-full"
-          onClick={handleAddToCart}
-        >
-          Thêm vào giỏ hàng
-        </Button>
+        <AddToCartButton product={product} variant="detailed" />
 
         <div className="grid grid-cols-2 gap-3">
           <Button
