@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Ruler, Package, MapPin, Calendar } from "lucide-react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight, Home, Loader2 } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import ImageGallery from "@/components/ImageGallery";
@@ -8,121 +9,108 @@ import ProductInfo from "@/components/ProductInfo";
 import ProductCard from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import product1 from "@/assets/product-1.jpg";
-import product2 from "@/assets/product-2.jpg";
-import product3 from "@/assets/product-3.jpg";
-import product4 from "@/assets/product-4.jpg";
+import { getProductById, getProductsByCategory } from "@/services/productService";
 
 const ProductDetail = () => {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
+  }, [id]);
 
-  // Mock product data
-  const product = {
-    images: [product1, product1, product2, product3, product4],
-    brand: "Noritake",
-    name: "Bát cơm gốm Nhật họa tiết hoa anh đào vintage",
-    price: "450.000₫",
-    originalPrice: "650.000₫",
-    condition: {
-      rating: "9/10 - Xuất sắc",
-      details: [
-        "✓ Không vết nứt",
-        "✓ Không chỗ sứt mẻ",
-        "⚠ Vài vết xước nhỏ do thời gian (không ảnh hưởng thẩm mỹ)",
-      ],
-    },
-    description:
-      "Bát cơm gốm Noritake vintage với họa tiết hoa anh đào tinh tế, mang đậm phong cách Nhật Bản truyền thống. Sản phẩm được sản xuất vào những năm 1970s, có niên đại rõ ràng.",
-    features: [
-      {
-        icon: <Ruler className="w-5 h-5" />,
-        label: "Kích thước",
-        value: "12cm x 6cm",
-      },
-      {
-        icon: <Package className="w-5 h-5" />,
-        label: "Chất liệu",
-        value: "Gốm sứ cao cấp",
-      },
-      {
-        icon: <MapPin className="w-5 h-5" />,
-        label: "Xuất xứ",
-        value: "Nhật Bản",
-      },
-      {
-        icon: <Calendar className="w-5 h-5" />,
-        label: "Năm sản xuất",
-        value: "~1970s",
-      },
-    ],
-    specifications: [
-      { label: "Đường kính", value: "12 cm" },
-      { label: "Chiều cao", value: "6 cm" },
-      { label: "Trọng lượng", value: "~200g" },
-      { label: "Chất liệu", value: "Gốm sứ" },
-      { label: "Xuất xứ", value: "Nhật Bản" },
-      { label: "Thương hiệu", value: "Noritake" },
-      { label: "Niên đại", value: "1970s" },
-      { label: "Màu sắc", value: "Trắng kem, hồng" },
-    ],
-  };
+  // Fetch product
+  const {
+    data: product,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["product", id],
+    queryFn: () => getProductById(id!),
+    enabled: !!id,
+  });
 
-  // Mock related products
-  const relatedProducts = [
-    {
-      id: 2,
-      image: product2,
-      name: "Đĩa sứ vintage họa tiết xanh indigo",
-      brand: "Arita",
-      price: "580.000₫",
-      condition: "10/10 - Như mới",
-      badge: "new" as const,
-    },
-    {
-      id: 3,
-      image: product3,
-      name: "Chén sake truyền thống set 4",
-      brand: "Kutani",
-      price: "720.000₫",
-      condition: "9/10 - Xuất sắc",
-    },
-    {
-      id: 4,
-      image: product4,
-      name: "Ấm trà gốm kyusu tay cầm tre",
-      brand: "Tokoname",
-      price: "890.000₫",
-      condition: "8/10 - Rất tốt",
-    },
-    {
-      id: 5,
-      image: product1,
-      name: "Bát súp gốm men ngọc vintage",
-      brand: "Imari",
-      price: "420.000₫",
-      condition: "9/10 - Xuất sắc",
-    },
-  ];
+  // Fetch related products from same category
+  const { data: relatedProducts } = useQuery({
+    queryKey: ["relatedProducts", product?.category],
+    queryFn: () => getProductsByCategory(product?.category || ""),
+    enabled: !!product?.category,
+  });
+
+  // Filter out current product and limit to 4 related products
+  const filteredRelatedProducts = relatedProducts
+    ?.filter((p) => p.id !== product?.id)
+    .slice(0, 4);
+
+  // Prepare images for gallery
+  const productImages =
+    product?.images && product.images.length > 0
+      ? product.images
+      : product?.image_url
+      ? [product.image_url]
+      : [];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Navigation />
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (isError || !product) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navigation />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-4xl font-serif mb-4">Không tìm thấy sản phẩm</h1>
+            <p className="text-muted-foreground mb-6">
+              Sản phẩm bạn đang tìm không tồn tại hoặc đã bị xóa.
+            </p>
+            <Button onClick={() => navigate("/products")}>
+              <ChevronLeft className="w-4 h-4 mr-2" />
+              Quay lại trang sản phẩm
+            </Button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">
       <Navigation />
-      
+
       <main className="pt-20">
         {/* Breadcrumb */}
         <div className="container mx-auto px-6 lg:px-20 py-6">
-          <Button
-            variant="ghost"
-            className="gap-2 -ml-4"
-            onClick={() => navigate("/")}
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Quay lại
-          </Button>
+          <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Link to="/" className="hover:text-primary transition-colors">
+              <Home className="w-4 h-4" />
+            </Link>
+            <ChevronRight className="w-4 h-4" />
+            <Link
+              to="/products"
+              className="hover:text-primary transition-colors"
+            >
+              Sản phẩm
+            </Link>
+            {product.category && (
+              <>
+                <ChevronRight className="w-4 h-4" />
+                <span className="hover:text-primary transition-colors">
+                  {product.category}
+                </span>
+              </>
+            )}
+            <ChevronRight className="w-4 h-4" />
+            <span className="text-foreground font-medium line-clamp-1">
+              {product.name}
+            </span>
+          </nav>
         </div>
 
         {/* Product Section */}
@@ -130,21 +118,12 @@ const ProductDetail = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
             {/* Left: Images */}
             <div className="animate-fade-up">
-              <ImageGallery images={product.images} productName={product.name} />
+              <ImageGallery images={productImages} productName={product.name} />
             </div>
 
             {/* Right: Product Info */}
             <div className="animate-fade-up" style={{ animationDelay: "0.1s" }}>
-              <ProductInfo
-                brand={product.brand}
-                name={product.name}
-                price={product.price}
-                originalPrice={product.originalPrice}
-                condition={product.condition}
-                description={product.description}
-                features={product.features}
-                specifications={product.specifications}
-              />
+              <ProductInfo product={product} />
             </div>
           </div>
         </section>
@@ -178,32 +157,35 @@ const ProductDetail = () => {
                 <TabsContent value="description" className="pt-8 space-y-6">
                   <div className="prose prose-lg max-w-none">
                     <h3 className="text-2xl font-serif mb-4">Về sản phẩm</h3>
-                    <p className="text-muted-foreground leading-relaxed">
-                      Bát cơm gốm Noritake này là một tác phẩm nghệ thuật vintage đích thực từ Nhật Bản, 
-                      được sản xuất vào những năm 1970s. Họa tiết hoa anh đào (sakura) được vẽ tay tinh tế, 
-                      thể hiện vẻ đẹp mong manh và thoáng qua của mùa xuân Nhật Bản.
-                    </p>
-                    <p className="text-muted-foreground leading-relaxed">
-                      Noritake là một trong những thương hiệu gốm sứ danh tiếng nhất của Nhật Bản, 
-                      được thành lập từ năm 1904. Sản phẩm của Noritake được biết đến với chất lượng 
-                      cao cấp và thiết kế tinh xảo, được nhiều gia đình Nhật Bản tin dùng qua nhiều thế hệ.
-                    </p>
+                    {product.description ? (
+                      <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+                        {product.description}
+                      </p>
+                    ) : (
+                      <p className="text-muted-foreground leading-relaxed">
+                        {product.name} là một sản phẩm gốm sứ Nhật Bản chính hãng từ thương hiệu{" "}
+                        {product.brand}. Sản phẩm được làm thủ công tinh xảo, mang đậm phong cách
+                        truyền thống Nhật Bản với chất lượng cao cấp.
+                      </p>
+                    )}
 
                     <h4 className="text-xl font-serif mt-8 mb-4">Đặc điểm nổi bật</h4>
                     <ul className="space-y-2 text-muted-foreground">
-                      <li>• Họa tiết hoa anh đào vẽ tay tinh tế, độc đáo</li>
-                      <li>• Men gốm mịn màng, bóng đẹp</li>
-                      <li>• Kích thước vừa phải, thích hợp đựng cơm hàng ngày</li>
-                      <li>• Có dấu Noritake chính hãng đáy bát</li>
-                      <li>• Bền đẹp, giữ nhiệt tốt</li>
+                      <li>• 100% chính hãng từ Nhật Bản</li>
+                      <li>• Chất liệu gốm sứ cao cấp, bền đẹp</li>
+                      <li>• Thiết kế tinh tế, sang trọng</li>
+                      <li>• Phù hợp cho sử dụng hàng ngày hoặc làm quà tặng</li>
+                      <li>• Đã được kiểm tra chất lượng kỹ lưỡng</li>
                     </ul>
 
-                    <h4 className="text-xl font-serif mt-8 mb-4">Câu chuyện sản phẩm</h4>
+                    <h4 className="text-xl font-serif mt-8 mb-4">
+                      Câu chuyện sản phẩm
+                    </h4>
                     <p className="text-muted-foreground leading-relaxed">
-                      Chiếc bát này được thu mua từ một gia đình ở Kyoto, đã được sử dụng và bảo quản 
-                      cẩn thận qua hơn 50 năm. Mặc dù đã có tuổi đời, sản phẩm vẫn giữ được vẻ đẹp 
-                      nguyên vẹn với những vết xước nhỏ do thời gian - chính là "linh hồn" của đồ vintage, 
-                      kể câu chuyện về những bữa cơm gia đình ấm áp.
+                      Gốm sứ Nhật Bản nổi tiếng với nghệ thuật làm đồ gốm có lịch sử hàng nghìn năm.
+                      Mỗi sản phẩm đều mang trong mình triết lý wabi-sabi - vẻ đẹp của sự không hoàn hảo,
+                      sự giản dị và tự nhiên. Đây không chỉ là đồ dùng mà còn là tác phẩm nghệ thuật,
+                      mang đến sự bình yên và thẩm mỹ cho không gian sống của bạn.
                     </p>
                   </div>
                 </TabsContent>
@@ -229,30 +211,48 @@ const ProductDetail = () => {
         </section>
 
         {/* Related Products */}
-        <section className="py-20 bg-background">
-          <div className="container mx-auto px-6 lg:px-20">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-serif text-charcoal mb-4">
-                Sản phẩm tương tự
-              </h2>
-              <p className="text-muted-foreground">
-                Có thể bạn sẽ thích
-              </p>
-            </div>
+        {filteredRelatedProducts && filteredRelatedProducts.length > 0 && (
+          <section className="py-20 bg-background">
+            <div className="container mx-auto px-6 lg:px-20">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl md:text-4xl font-serif text-charcoal mb-4">
+                  Sản phẩm tương tự
+                </h2>
+                <p className="text-muted-foreground">
+                  Có thể bạn sẽ thích
+                </p>
+              </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
-              {relatedProducts.map((product, index) => (
-                <div
-                  key={product.id}
-                  className="animate-fade-up"
-                  style={{ animationDelay: `${index * 0.05}s` }}
-                >
-                  <ProductCard {...product} />
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
+                {filteredRelatedProducts.map((relatedProduct, index) => (
+                  <div
+                    key={relatedProduct.id}
+                    className="animate-fade-up"
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                  >
+                    <ProductCard product={relatedProduct} />
+                  </div>
+                ))}
+              </div>
+
+              {/* View More Button */}
+              {product.category && (
+                <div className="text-center mt-12">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    asChild
+                  >
+                    <Link to="/products">
+                      Xem thêm sản phẩm
+                      <ChevronRight className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
                 </div>
-              ))}
+              )}
             </div>
-          </div>
-        </section>
+          </section>
+        )}
       </main>
 
       <Footer />

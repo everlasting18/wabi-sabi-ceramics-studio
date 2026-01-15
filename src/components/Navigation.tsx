@@ -11,12 +11,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
+import { useCart } from "@/contexts/CartContext";
 
 const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { getCartCount } = useCart();
   const navigate = useNavigate();
+
+  const cartCount = getCartCount();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,10 +36,10 @@ const Navigation = () => {
   };
 
   const menuItems = [
-    { label: "Sản phẩm", href: "#products" },
-    { label: "Bộ sưu tập", href: "#collections" },
-    { label: "Blog", href: "#blog" },
-    { label: "Về chúng tôi", href: "#about" },
+    { label: "Sản phẩm", href: "/products", isRoute: true },
+    { label: "Bộ sưu tập", href: "/galleries", isRoute: true },
+    { label: "Blog", href: "#blog", isRoute: false },
+    { label: "Về chúng tôi", href: "#about", isRoute: false },
   ];
 
   return (
@@ -58,15 +62,25 @@ const Navigation = () => {
 
             {/* Desktop Menu */}
             <div className="hidden lg:flex items-center space-x-8">
-              {menuItems.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  className="text-sm font-medium text-foreground hover:text-primary transition-colors link-underline"
-                >
-                  {item.label}
-                </a>
-              ))}
+              {menuItems.map((item) =>
+                item.isRoute ? (
+                  <Link
+                    key={item.label}
+                    to={item.href}
+                    className="text-sm font-medium text-foreground hover:text-primary transition-colors link-underline"
+                  >
+                    {item.label}
+                  </Link>
+                ) : (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    className="text-sm font-medium text-foreground hover:text-primary transition-colors link-underline"
+                  >
+                    {item.label}
+                  </a>
+                )
+              )}
             </div>
 
             {/* Desktop Actions */}
@@ -114,13 +128,15 @@ const Navigation = () => {
                   0
                 </span>
               </Button>
-              
+
               <Button variant="ghost" size="icon" className="hover:text-primary relative" asChild>
                 <Link to="/cart">
                   <ShoppingCart className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                    2
-                  </span>
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center font-medium">
+                      {cartCount > 99 ? '99+' : cartCount}
+                    </span>
+                  )}
                 </Link>
               </Button>
             </div>
@@ -161,16 +177,27 @@ const Navigation = () => {
         >
           <div className="flex flex-col h-full p-6 pt-24">
             <div className="flex flex-col space-y-6 mb-8">
-              {menuItems.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  className="text-lg font-medium text-foreground hover:text-primary transition-colors"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {item.label}
-                </a>
-              ))}
+              {menuItems.map((item) =>
+                item.isRoute ? (
+                  <Link
+                    key={item.label}
+                    to={item.href}
+                    className="text-lg font-medium text-foreground hover:text-primary transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {item.label}
+                  </Link>
+                ) : (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    className="text-lg font-medium text-foreground hover:text-primary transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {item.label}
+                  </a>
+                )
+              )}
             </div>
 
             {/* Mobile User Menu */}
@@ -224,11 +251,13 @@ const Navigation = () => {
                 </span>
               </Button>
               <Button variant="ghost" size="icon" className="relative" asChild>
-                <Link to="/cart">
+                <Link to="/cart" onClick={() => setIsMobileMenuOpen(false)}>
                   <ShoppingCart className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                    2
-                  </span>
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-primary text-white text-xs rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center font-medium">
+                      {cartCount > 99 ? '99+' : cartCount}
+                    </span>
+                  )}
                 </Link>
               </Button>
             </div>
